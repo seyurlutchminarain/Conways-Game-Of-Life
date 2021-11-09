@@ -2,6 +2,7 @@
 #include <mpi.h>
 #include <vector>
 #include <random>
+#include <chrono>
 
 using namespace std;
 
@@ -67,6 +68,7 @@ int main(int argc, char *argv[])
   const int ALIVE = 1;
   const int DEAD = 0;
 
+  auto start = chrono::high_resolution_clock::now();
   // Time loop
   for (auto iTime = 0; iTime < nTime; ++iTime)
   {
@@ -101,15 +103,6 @@ int main(int argc, char *argv[])
 
     if (mpirank == mpiroot)
     {
-      cout << "Generation: " << iTime << endl;
-      for (auto iRow = 1; iRow <= nRowsLocal; ++iRow)
-      {
-        for (auto iCol = 1; iCol <= nCols; iCol++)
-        {
-          cout << currGrid[iRow][iCol] << " ";
-        }
-        cout << endl;
-      }
 
       for (auto sourceRank = 1; sourceRank < mpisize; ++sourceRank)
       {
@@ -123,11 +116,6 @@ int main(int argc, char *argv[])
         {
           //MPI::COMM_WORLD.Recv(&buff[0], nCols, MPI::INT, sourceRank, 0);
           MPI_Recv(&buff[0], nCols, MPI_INT, sourceRank, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-          for (auto i : buff)
-          {
-            cout << i << " ";
-          }
-          cout << endl;
         }
       }
     }
@@ -179,6 +167,13 @@ int main(int argc, char *argv[])
 
   } // for iTime
 
+  if (mpirank == 0)
+  {
+    auto finish = chrono::high_resolution_clock::now();
+    long long timeTaken = chrono::duration_cast<chrono::microseconds>(finish - start).count();
+    cout << "Time taken for execution: " << timeTaken << " microseconds" << endl;
+  }
   MPI_Finalize();
+
   return 0;
 }

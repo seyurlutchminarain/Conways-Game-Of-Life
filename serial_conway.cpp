@@ -3,41 +3,18 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <chrono>
 
 using namespace std;
 
 int row, col;
 int timeSteps;
 
-//returns the count of alive neighbours
-int countNeighbors(vector<vector<int>> a, int r, int c)
-{
-    int count = 0;
-
-    for (int i = r - 1; i <= r + 1; i++) // for rows: from left to right
-    {
-        for (int j = c - 1; j <= c + 1; j++) // for cols: from up to down -> so all 8 neighbors explored?
-        {
-
-            if ((i == r && j == c) || (i < 0 || j < 0) || (i >= row || j >= col)) // if we are in valid spaces check the cell if alive or dead
-            {                                                                     // but dont count cell (r,c) -> it should not affect our state
-                continue;
-            }
-            if (a[i][j] == 1)
-            {
-                count++;
-            }
-        }
-    }
-
-    return count;
-}
-
 void printGrid(vector<vector<int>> grid)
 {
-    for (int i = 0; i < grid.size(); ++i)
+    for (int i = 1; i < grid.size() - 1; ++i)
     {
-        for (int j = 0; j < grid[i].size(); ++j)
+        for (int j = 1; j < grid[i].size() - 1; ++j)
         {
             cout << grid[i][j] << " ";
         }
@@ -76,6 +53,7 @@ int main(int argc, char *argv[])
         }
     }
 
+    auto start = chrono::high_resolution_clock::now();
     for (int iTime = 0; iTime < timeSteps; ++iTime)
     {
         for (int r = 0; r <= row; ++r) // adding the ghost cols
@@ -95,29 +73,37 @@ int main(int argc, char *argv[])
         a[row + 1][0] = a[1][col];
         a[row + 1][col + 1] = a[1][1];
 
-        cout << "Generation: " << iTime << endl;
-        printGrid(a);
+        // cout << "Generation: " << iTime << endl;
+        // printGrid(a);
 
         for (int i = 1; i <= row; ++i)
         {
             for (int j = 1; j <= col; ++j)
             {
-                if (a[i][j] == 1 && (countNeighbors(a, i, j) == 3 || countNeighbors(a, i, j) == 2)) // first rule
-                {
+                int nAlive = 0;
 
-                    cout << "Cell (" << i << "," << j << ") has " << countNeighbors(a, i, j) << " neighbors alive and is alive -> should be 1" << endl;
-                    b[i][j] = 1; // cell is alive next gen
+                for (int r = i - 1; r <= i + 1; ++r)
+                {
+                    for (int c = j - 1; c <= j + 1; ++c)
+                    {
+                        // cout << "Cell (" << r << "," << c << ") is " << a[r][c] << endl;
+                        if (a[r][c] == 1 && (r != i || c != j)) // count the neighbors
+                        {
+                            nAlive++;
+                        }
+                    }
                 }
-                else if (a[i][j] == 1 && (countNeighbors(a, i, j) > 3 || countNeighbors(a, i, j) < 2)) // cell must die
-                {
 
-                    cout << "Cell (" << i << "," << j << ") has " << countNeighbors(a, i, j) << " neighbors alive and is alive -> should be 0" << endl;
+                if (nAlive < 2 || nAlive > 3)
+                {
                     b[i][j] = 0;
                 }
-                else if (a[i][j] == 0 && countNeighbors(a, i, j) == 3)
+                if (a[i][j] == 1 && (nAlive == 2 || nAlive == 3))
                 {
-
-                    cout << "Cell (" << i << "," << j << ") has " << countNeighbors(a, i, j) << " neighbors alive and is dead -> should be 1" << endl;
+                    b[i][j] = 1;
+                }
+                if (a[i][j] == 0 && nAlive == 3)
+                {
                     b[i][j] = 1;
                 }
             }
@@ -127,6 +113,10 @@ int main(int argc, char *argv[])
         // printGrid(b);
         copyGrid(a, b);
     }
+    auto finish = chrono::high_resolution_clock::now();
+    long long timeTaken = chrono::duration_cast<chrono::microseconds>(finish - start).count();
+
+    cout << "Time taken for execution: " << timeTaken << " microseconds" << endl;
 
     return 0;
 }
